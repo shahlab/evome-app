@@ -1,0 +1,14 @@
+name: evome-app
+title: evome-app
+username:
+account: ptilt
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4472299
+bundleId: 4908083
+url: https://ptilt.shinyapps.io/evome-app/
+when: 1628609602.3787
+lastSyncTime: 1628609602.37872
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: evome_app2.R|Plot from EVome paper.R|shiny_final.R|shiny_partial.R
