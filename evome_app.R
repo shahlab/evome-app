@@ -29,9 +29,6 @@ library(patchwork)
 library(ggrepel)
 library(ggpointdensity)
 
-wd <- "~/evome-app/"
-#setwd(wd) # Commented out to work on other machines
-
 path <- "data/EVome_TPMs.csv"
 df_evome_raw <- read_csv(path)
 path2 <- "data/EVome_TPMs_part2.csv"
@@ -126,18 +123,20 @@ server <- function(input, output, session) {
   
   nxdx_nydy_df <- reactive({
       df_evome() %>%
-        select(
-          Peptide_count,
-          Gene_name
-        ) %>%
-        mutate(., Case_x=nx(), Control_x=dx(), Case_y=ny(), Control_y=dy()) %>%
-        mutate(., Case_over_control_x=Case_x/Control_x, Case_over_control_y=Case_y/Control_y) %>%
+        select(Peptide_count,Gene_name) %>%
+        mutate(Case_x=nx(), Control_x=dx(), Case_y=ny(), Control_y=dy(),
+               Case_over_control_x=Case_x/Control_x, Case_over_control_y=Case_y/Control_y,
+               color = case_when(
+                 Case_over_control_x > input$x_thresh & Case_over_control_y < input$y_thresh~ "onlyX",
+                 Case_over_control_y > input$y_thresh & Case_over_control_x < input$x_thresh~ "onlyY",
+                 (Case_over_control_x > input$x_thresh & Case_over_control_y > input$y_thresh) ~ "bothXY",
+                 (Case_over_control_x < input$x_thresh & Case_over_control_y < input$y_thresh) ~ "none")) %>%
         filter(is.finite(Case_over_control_x) & is.finite(Case_over_control_y))
   })
   
   pt1 <- reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_x, y = Control_x)) +
-      geom_pointdensity() +
+      geom_pointdensity(size = 1) +
       ggtitle("Case A vs. control A") +
       xlab("Control A") +
       ylab("Case A") +
@@ -147,13 +146,13 @@ server <- function(input, output, session) {
       coord_equal() +
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
-                            guide = FALSE)+
+                            guide = "none")+
       theme(plot.title = element_text(hjust = 0.5))
   })
   
   pt2 <-reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_y, y = Control_y)) +
-      geom_pointdensity() +
+      geom_pointdensity(size = 1) +
       ggtitle("Case B vs. control B") +
       xlab("Control B") +
       ylab("Case B") +
@@ -163,7 +162,7 @@ server <- function(input, output, session) {
       coord_equal() +
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
-                            guide = FALSE)+
+                            guide = "none")+
       theme(plot.title = element_text(hjust = 0.5))
   })
   
@@ -450,84 +449,85 @@ server <- function(input, output, session) {
   )
   
   plot_reactive <- reactive(
-    ggplot(nxdx_nydy_df(), aes(x = Case_over_control_x, y = Case_over_control_y), alpha = 0.5) +
-      geom_point(color = "grey",
-                 shape = 17,
-                 size = 1) +
-      # Covered by both thresholds
-      geom_point(
-        data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-                                           (Case_over_control_y > input$y_thresh)),
-        aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
-        color = "#601A4A",
-        alpha = 0.5
-      ) +
-      geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-                                                         (Case_over_control_y > input$y_thresh)),
-                      aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
-                      size = 5) +
-      # Covered by x threshold
-      geom_point(
-        data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-                                           (Case_over_control_y < input$y_thresh)),
-        aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
-        color = "#EE442F",
-        alpha = 0.5
-      ) +
-      geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-                                                         (Case_over_control_y < input$y_thresh)),
-                      aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
-                      size = 5) +
-      # Covered by y threshold
-      geom_point(
-        data = nxdx_nydy_df() %>% filter((Case_over_control_x < input$x_thresh) &
-                                           (Case_over_control_y > input$y_thresh)),
-        aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
-        color = "green",
-        alpha = 0.5
-      ) +
-      geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x < input$x_thresh) &
-                                                         (Case_over_control_y > input$y_thresh)),
+    ggplot(nxdx_nydy_df(), aes(x = Case_over_control_x, y = Case_over_control_y, color = color)) +
+      geom_point(alpha = 0.5, size = 0.8) +
+      # # Covered by both thresholds
+      # geom_point(
+      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
+      #                                      (Case_over_control_y > input$y_thresh)),
+      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   color = "#601A4A",
+      #   alpha = 0.5
+      # ) +
+      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
+      #                                                    (Case_over_control_y > input$y_thresh)),
+      #                 aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
+      #                 size = 5) +
+      # # Covered by x threshold
+      # geom_point(
+      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
+      #                                      (Case_over_control_y < input$y_thresh)),
+      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   color = "#EE442F",
+      #   alpha = 0.5
+      # ) +
+      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
+      #                                                    (Case_over_control_y < input$y_thresh)),
+      #                 aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
+      #                 size = 5) +
+      # # Covered by y threshold
+      # geom_point(
+      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x < input$x_thresh) &
+      #                                      (Case_over_control_y > input$y_thresh)),
+      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   color = "green",
+      #   alpha = 0.5
+      # ) +
+    scale_color_brewer(palette = "Set1") +
+      guides(color = "none") +
+      geom_text_repel(data = nxdx_nydy_df() %>% filter(color != "none"),
                       aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
                       size = 5) +
       theme_minimal() +
       theme(plot.title = element_text(hjust = 0.5)) +
-      ylim(0, as.integer(input$ymax)) +
-      xlim(0, as.integer(input$xmax)) +
+      ylim(input$yrange) +
+      xlim(input$xrange) +
+      # scale_x_log10() +
+      # scale_y_log10() +
       ggtitle("Enrichment in case/control A vs. enrichment in case/control B") +
       ylab(paste("Enrichment in case/control B")) +
       xlab(paste("Enrichment in case/control A")) +
-      coord_equal() +
-      theme(
-        axis.ticks.y.left = element_line(color = "black"),
-        axis.ticks.x = element_line(color = "black"),
-        axis.line.x = element_line(color = "black"),
-        axis.line.y = element_line(color = "black"),
-        axis.title.y = element_text(
-          size = 10,
-          color = "black",
-          margin = margin(
-            t = 0,
-            r = 10,
-            b = 0,
-            l = 0
-          )
-        ),
-        axis.title.x = element_text(
-          size = 10,
-          color = "black",
-          margin = margin(
-            t = 10,
-            r = 0,
-            b = 0,
-            l = 0
-          )
-        ),
-        axis.text.y = element_text(size = 10, color = "black"),
-        axis.text.x = element_text(size = 10,
-                                   color = "black")
+      coord_equal()
+      # theme(
+      #   axis.ticks.y.left = element_line(color = "black"),
+      #   axis.ticks.x = element_line(color = "black"),
+      #   axis.line.x = element_line(color = "black"),
+      #   axis.line.y = element_line(color = "black"),
+      #   axis.title.y = element_text(
+      #     size = 10,
+      #     color = "black",
+      #     margin = margin(
+      #       t = 0,
+      #       r = 10,
+      #       b = 0,
+      #       l = 0
+      #     )
+      #   ),
+      #   axis.title.x = element_text(
+      #     size = 10,
+      #     color = "black",
+      #     margin = margin(
+      #       t = 10,
+      #       r = 0,
+      #       b = 0,
+      #       l = 0
+      #     )
+      #   ),
+        # axis.text.y = element_text(size = 10, color = "black"),
+        # axis.text.x = element_text(size = 10,
+        #                            color = "black")
       )
-  )
+  # )
   
   # Plot code modified from Inna
   output$nxdx_nydy_plot <- renderPlot({
@@ -552,31 +552,37 @@ ui <- fluidPage(# App title
         title="Main plot",
         plotOutput("axes_analysis_plots"),
         plotOutput("nxdx_nydy_plot"),
-        selectInput(inputId = "exclude_male_genes", 
+        fluidRow(
+          column(3,
+                 sliderInput(inputId="yrange", label="Y Range", max=50, min = 0, value = c(0, 45))
+                 ),
+          column(3,
+                  sliderInput(inputId="xrange", label="X Range", max = 50, min = 0, value = c(0, 45))
+                 ),
+          column(3,
+                 sliderInput(inputId="x_thresh", label="x threshold", min=0, max=50, value=5)
+          ),
+          column(3,
+                 sliderInput(inputId="y_thresh", label="y threshold", min=0, max=50, value=5)
+          )),
+        fluidRow(
+        column(4, selectInput(inputId = "exclude_male_genes", 
                     label = "Exclude male-specific genes?",
                     choices = c("no", "yes"),
-                    selected = "no"),
-        fluidRow(
-          column(4,
-                 textInput(inputId="ymax", label="Maximum y value", value=25)
-                 ),
-          column(4,
-                   textInput(inputId="xmax", label="Maximum x value", value=45)
-                 ),
-          column(4,
-                 headerPanel(""),
-                 downloadButton('downloadPlot', 'Download Plot')
-                 )
+                    selected = "no")),
+        column(4,
+               headerPanel(""),
+               downloadButton('downloadPlot', 'Download Plot'))
         ),
         fluidRow(
           column(3,
-                 htmlOutput("rendered_nx")),
+                 htmlOutput("render_nx")),
           column(3,
-                 htmlOutput("rendered_dx")),
+                 htmlOutput("render_dx")),
           column(3,
-                 htmlOutput("rendered_ny")),
+                 htmlOutput("render_ny")),
           column(3,
-                 htmlOutput("rendered_dy"))
+                 htmlOutput("render_dy"))
         )
       ),
       tabPanel(
@@ -724,13 +730,13 @@ ui <- fluidPage(# App title
           ),
         ),
       ),
-      tabPanel(
-        title="Thresholds",
-        tagList(
-          sliderInput(inputId="x_thresh", label="x threshold", min=0, max=50, value=5),
-          sliderInput(inputId="y_thresh", label="y threshold", min=0, max=50, value=5)
-        )
-      ),
+      # tabPanel(
+      #   title="Thresholds",
+      #   tagList(
+      #     sliderInput(inputId="x_thresh", label="x threshold", min=0, max=50, value=5),
+      #     sliderInput(inputId="y_thresh", label="y threshold", min=0, max=50, value=5)
+      #   )
+      # ),
       tabPanel(
         title="Help",
         textOutput("instructions_text")
