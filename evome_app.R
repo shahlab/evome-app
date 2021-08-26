@@ -28,6 +28,7 @@ library(tidyverse)
 library(patchwork)
 library(ggrepel)
 library(ggpointdensity)
+library(ggpubr)
 
 path <- "data/EVome_TPMs.csv"
 df_evome_raw <- read_csv(path)
@@ -70,7 +71,7 @@ server <- function(input, output, session) {
         input$nx2,
         input$nx3
       ) %>%
-      rowSums()
+      rowSums() / sum(length(input$nx1), length(input$nx2), length(input$nx3))
   )
   
   dx_names <- reactive(c(
@@ -100,7 +101,7 @@ server <- function(input, output, session) {
         input$ny2,
         input$ny3
       ) %>%
-      rowSums()
+      rowSums() / sum(length(input$ny1), length(input$ny2), length(input$ny3))
   )
   
   dy_names <- reactive(c(
@@ -137,43 +138,51 @@ server <- function(input, output, session) {
   pt1 <- reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_x, y = Control_x)) +
       geom_pointdensity(size = 1) +
-      ggtitle("Case A vs. control A") +
-      xlab("Control A") +
-      ylab("Case A") +
-      theme_minimal() +
+      # ggtitle("Case A vs. control A") +
+      xlab("Avg. peptide abundance Control A") +
+      ylab("Avg. peptide abundance Case A") +
+      theme_pubr() +
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-      coord_equal() +
+      # coord_equal() +
+      # xlim(range(nxdx_nydy_df() %>% select(Case_x,Control_x) %>% unlist())) +
+      # ylim(range(nxdx_nydy_df() %>% select(Case_x,Control_x) %>% unlist())) +
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
                             guide = "none")+
-      theme(plot.title = element_text(hjust = 0.5))
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_cor()
   })
   
   pt2 <-reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_y, y = Control_y)) +
       geom_pointdensity(size = 1) +
-      ggtitle("Case B vs. control B") +
-      xlab("Control B") +
-      ylab("Case B") +
-      theme_minimal() +
+      # ggtitle("Case B vs. control B") +
+      xlab("Avg. peptide abundance Control B") +
+      ylab("Avg. peptide abundance Case B") +
+      theme_pubr() +
+      # xlim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
+      # ylim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
+      # # coord_equal() +
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-      coord_equal() +
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
                             guide = "none")+
-      theme(plot.title = element_text(hjust = 0.5))
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_cor()
   })
   
-  output$axes_analysis_plots <- renderPlot({pt1() + pt2()})
+  # output$axes_analysis_plots <- renderPlot({pt1() + pt2()})
+  output$pt1 <- renderPlot(pt1()) 
+  output$pt2 <- renderPlot(pt2()) 
   
   output$rendered_table <- renderDataTable(nxdx_nydy_df())
   
-  output$render_nx <- renderUI(HTML(paste(nx_names(), sep = '<br/>')))
-  output$render_dx <- renderUI(HTML(paste(dx_names(), sep = '<br/>')))
-  output$render_ny <- renderUI(HTML(paste(ny_names(), sep = '<br/>')))
-  output$render_dy <- renderUI(HTML(paste(dy_names(), sep = '<br/>')))
+  output$render_nx <- renderUI(HTML(paste(c("Case A", nx_names()), sep = '<br/>')))
+  output$render_dx <- renderUI(HTML(paste(c("Control A", dx_names()), sep = '<br/>')))
+  output$render_ny <- renderUI(HTML(paste(c("Case B", ny_names()), sep = '<br/>')))
+  output$render_dy <- renderUI(HTML(paste(c("Control B", dy_names()), sep = '<br/>')))
   
   observe({
     print(dy_names())
@@ -230,15 +239,15 @@ server <- function(input, output, session) {
         updateCheckboxGroupInput(
           session=session,
           inputId="nx3",
-          choices=organ_vec,
-          selected=organ_vec
+          choices=neuron_vec,
+          selected=neuron_vec
         )
       }
       else {
         updateCheckboxGroupInput(
           session=session,
           inputId="nx3",
-          choices=organ_vec,
+          choices=neuron_vec,
           selected=NULL
         )
       }
@@ -293,15 +302,15 @@ server <- function(input, output, session) {
         updateCheckboxGroupInput(
           session=session,
           inputId="dx3",
-          choices=organ_vec,
-          selected=organ_vec
+          choices=neuron_vec,
+          selected=neuron_vec
         )
       }
       else {
         updateCheckboxGroupInput(
           session=session,
           inputId="dx3",
-          choices=organ_vec,
+          choices=neuron_vec,
           selected=NULL
         )
       }
@@ -356,15 +365,15 @@ server <- function(input, output, session) {
         updateCheckboxGroupInput(
           session=session,
           inputId="ny3",
-          choices=organ_vec,
-          selected=organ_vec
+          choices=neuron_vec,
+          selected=neuron_vec
         )
       }
       else {
         updateCheckboxGroupInput(
           session=session,
           inputId="ny3",
-          choices=organ_vec,
+          choices=neuron_vec,
           selected=NULL
         )
       }
@@ -419,15 +428,15 @@ server <- function(input, output, session) {
         updateCheckboxGroupInput(
           session=session,
           inputId="dy3",
-          choices=organ_vec,
-          selected=organ_vec
+          choices=neuron_vec,
+          selected=neuron_vec
         )
       }
       else {
         updateCheckboxGroupInput(
           session=session,
           inputId="dy3",
-          choices=organ_vec,
+          choices=neuron_vec,
           selected=NULL
         )
       }
@@ -488,13 +497,13 @@ server <- function(input, output, session) {
       geom_text_repel(data = nxdx_nydy_df() %>% filter(color != "none"),
                       aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
                       size = 5) +
-      theme_minimal() +
+      theme_pubr() +
       theme(plot.title = element_text(hjust = 0.5)) +
       ylim(input$yrange) +
       xlim(input$xrange) +
       # scale_x_log10() +
       # scale_y_log10() +
-      ggtitle("Enrichment in case/control A vs. enrichment in case/control B") +
+      # ggtitle("Enrichment in case/control A vs. enrichment in case/control B") +
       ylab(paste("Enrichment in case/control B")) +
       xlab(paste("Enrichment in case/control A")) +
       coord_equal()
@@ -550,8 +559,15 @@ ui <- fluidPage(# App title
     tabsetPanel(
       tabPanel(
         title="Main plot",
-        plotOutput("axes_analysis_plots"),
-        plotOutput("nxdx_nydy_plot"),
+        fluidRow(
+          column(6, plotOutput('pt1')),
+          column(6, plotOutput('pt2'))
+        ),
+        # fluidRow(
+          # column(6, align = "center", plotOutput('nxdx_nydy_plot'))
+        # ),
+#        plotOutput("axes_analysis_plots"),
+       plotOutput("nxdx_nydy_plot"),
         fluidRow(
           column(3,
                  sliderInput(inputId="yrange", label="Y Range", max=50, min = 0, value = c(0, 45))
@@ -655,7 +671,7 @@ ui <- fluidPage(# App title
                    inputId="dx3",
                    label="Neurons",
                    choices=neuron_vec,
-                   selected=neuron_vec
+                   selected=neuron_vec[neuron_vec!=c("Cholinergic_15")]
                  ),
           ),
         ),  
@@ -715,7 +731,7 @@ ui <- fluidPage(# App title
                    inputId="dy2",
                    label="Tissues",
                    choices=tissue_vec,
-                   selected=tissue_vec
+                   selected=tissue_vec[tissue_vec!=c("Ciliated_sensory_neurons")]
                  ),
           ),
           column(4,
