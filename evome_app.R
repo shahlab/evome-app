@@ -546,7 +546,19 @@ server <- function(input, output, session) {
   )
   
   output$instructions_text <- renderText({
-    "TODO"
+    "    1a. In the case A tab, select which data you want.\n
+    1b. In the control A tab, select which data you want.\n
+    1c. Check the main plot tab to see a average peptide abundances for case A vs. control A.\n
+    2a. In the case B tab, select which data you want.\n
+    2b. In the control B tab, select which data you want.\n
+    2c. Check the main plot tab to see a average peptide abundances for case B vs. control B.\n
+    3a. Check the main plot tab to see enrichment in case/control A vs. enrichment in case/control B.\n
+    3b. If desired, adjust the thresholds for plot 3a with sliders beneath the display.\n
+    3c. If desired, adjust the x and y ranges for plot 3a with sliders beneath the display.\n
+    3d. If desired, exclude male-specific genes with a drop-down menu beneath the display.\n
+    3e. Press 'download plot' to save plot 3a to your machine.\n
+    4a. Check the table tab to see the data table producing plot 3a.\n
+    4b. Press 'download table' to save this data table to your machine."
   })
   
   # TODO: set default plot to the one from Inna's paper
@@ -592,13 +604,17 @@ ui <- fluidPage(# App title
         ),
         fluidRow(
           column(3,
-                 htmlOutput("render_nx")),
+                 "Case A selection:",
+                 wellPanel(htmlOutput("render_nx"))),
           column(3,
-                 htmlOutput("render_dx")),
+                 "Control A selection:",
+                 wellPanel(htmlOutput("render_dx"))),
           column(3,
-                 htmlOutput("render_ny")),
+                 "Case B selection:",
+                 wellPanel(htmlOutput("render_ny"))),
           column(3,
-                 htmlOutput("render_dy"))
+                 "Control B selection:",
+                 wellPanel(htmlOutput("render_dy")))
         )
       ),
       tabPanel(
@@ -755,7 +771,7 @@ ui <- fluidPage(# App title
       # ),
       tabPanel(
         title="Help",
-        textOutput("instructions_text")
+        verbatimTextOutput("instructions_text")
       )
     )
   )
