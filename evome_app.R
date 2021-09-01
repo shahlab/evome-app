@@ -1,26 +1,11 @@
 # TODO: Create github repo for this, README, and associated files
 
 # TODO:
-# 1. Download button for plot/table (DONE)
-# 2. Set default plot to Inna's paper plot (DONE)
-# 3. List which points are excluded
-# 4. Error message: "we recommend including Case in control"
-# 5. Sortable table (DONE)
-# 6. Fill out instructions tab
-# 7. Replace old data frame with new one (DONE)
-# 8. Select all option (DONE)
-# 9. Layout, font sizes, descriptive nomenclature
-# 10. Add two plots above enrichment, Case vs. control x, Case vs. control y (DONE)
-# 11. Presets
-# 12. Button to exclude male-specific vector (DONE)
-# 13. Find out how to integrate with paper
-# 14. Case A / case B (DONE)
-# 15. Equal coordinate system
-# 16. Buttons on top
-# 17. Remove resizing of points by peptide count
-# 18. Add dynamic point highlighting on axes_analyses_plots
-# 19. Make plot download with white background (instead of transparent)
-# 20. Increase downloaded plot size
+# Change x and y range maxes to dynamic
+# Include inf values in the table instead of dropping them
+# Label genes above threshold in pt1 and pt2
+# Rewrite docx help page as html (wait for Alex edits)
+# Use includeHTML to display help page
 # 
 
 library(shiny)
@@ -138,9 +123,9 @@ server <- function(input, output, session) {
   pt1 <- reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_x, y = Control_x)) +
       geom_pointdensity(size = 1) +
-      # ggtitle("Case A vs. control A") +
-      xlab("Avg. peptide abundance Control A") +
-      ylab("Avg. peptide abundance Case A") +
+      # ggtitle("Sample Y vs. Background Y") +
+      xlab("Avg. peptide abundance Background Y") +
+      ylab("Avg. peptide abundance Sample Y") +
       theme_pubr() +
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
@@ -150,16 +135,17 @@ server <- function(input, output, session) {
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
                             guide = "none")+
-      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(plot.title = element_text(hjust = 0.5),
+            aspect.ratio = 1) +
       stat_cor()
   })
   
   pt2 <-reactive({
     ggplot(nxdx_nydy_df(), aes(x = Case_y, y = Control_y)) +
       geom_pointdensity(size = 1) +
-      # ggtitle("Case B vs. control B") +
-      xlab("Avg. peptide abundance Control B") +
-      ylab("Avg. peptide abundance Case B") +
+      # ggtitle("Sample X vs. Background X") +
+      xlab("Avg. peptide abundance Background X") +
+      ylab("Avg. peptide abundance Sample X") +
       theme_pubr() +
       # xlim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
       # ylim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
@@ -169,7 +155,8 @@ server <- function(input, output, session) {
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
                             guide = "none")+
-      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(plot.title = element_text(hjust = 0.5),
+            aspect.ratio = 1) +
       stat_cor()
   })
   
@@ -179,10 +166,10 @@ server <- function(input, output, session) {
   
   output$rendered_table <- renderDataTable(nxdx_nydy_df())
   
-  output$render_nx <- renderUI(HTML(paste(c("Case A", nx_names()), sep = '<br/>')))
-  output$render_dx <- renderUI(HTML(paste(c("Control A", dx_names()), sep = '<br/>')))
-  output$render_ny <- renderUI(HTML(paste(c("Case B", ny_names()), sep = '<br/>')))
-  output$render_dy <- renderUI(HTML(paste(c("Control B", dy_names()), sep = '<br/>')))
+  output$render_nx <- renderUI(HTML(paste(c("Sample Y", nx_names()), sep = '<br/>')))
+  output$render_dx <- renderUI(HTML(paste(c("Background Y", dx_names()), sep = '<br/>')))
+  output$render_ny <- renderUI(HTML(paste(c("Sample X", ny_names()), sep = '<br/>')))
+  output$render_dy <- renderUI(HTML(paste(c("Background X", dy_names()), sep = '<br/>')))
   
   observe({
     print(dy_names())
@@ -503,10 +490,11 @@ server <- function(input, output, session) {
       xlim(input$xrange) +
       # scale_x_log10() +
       # scale_y_log10() +
-      # ggtitle("Enrichment in case/control A vs. enrichment in case/control B") +
-      ylab(paste("Enrichment in case/control B")) +
-      xlab(paste("Enrichment in case/control A")) +
-      coord_equal()
+      # ggtitle("Enrichment in case/Background Y vs. enrichment in case/Background X") +
+      ylab(paste("Enrichment in case/Background X")) +
+      xlab(paste("Enrichment in case/Background Y")) +
+      coord_fixed() +
+      theme(aspect.ratio = 1)
       # theme(
       #   axis.ticks.y.left = element_line(color = "black"),
       #   axis.ticks.x = element_line(color = "black"),
@@ -546,13 +534,13 @@ server <- function(input, output, session) {
   )
   
   output$instructions_text <- renderText({
-    "    1a. In the case A tab, select which data you want.\n
-    1b. In the control A tab, select which data you want.\n
-    1c. Check the main plot tab to see a average peptide abundances for case A vs. control A.\n
-    2a. In the case B tab, select which data you want.\n
-    2b. In the control B tab, select which data you want.\n
-    2c. Check the main plot tab to see a average peptide abundances for case B vs. control B.\n
-    3a. Check the main plot tab to see enrichment in case/control A vs. enrichment in case/control B.\n
+    "    1a. In the Sample Y tab, select which data you want.\n
+    1b. In the Background Y tab, select which data you want.\n
+    1c. Check the main plot tab to see a average peptide abundances for Sample Y vs. Background Y.\n
+    2a. In the Sample X tab, select which data you want.\n
+    2b. In the Background X tab, select which data you want.\n
+    2c. Check the main plot tab to see a average peptide abundances for Sample X vs. Background X.\n
+    3a. Check the main plot tab to see enrichment in case/Background Y vs. enrichment in case/Background X.\n
     3b. If desired, adjust the thresholds for plot 3a with sliders beneath the display.\n
     3c. If desired, adjust the x and y ranges for plot 3a with sliders beneath the display.\n
     3d. If desired, exclude male-specific genes with a drop-down menu beneath the display.\n
@@ -571,10 +559,6 @@ ui <- fluidPage(# App title
     tabsetPanel(
       tabPanel(
         title="Main plot",
-        fluidRow(
-          column(6, plotOutput('pt1')),
-          column(6, plotOutput('pt2'))
-        ),
         # fluidRow(
           # column(6, align = "center", plotOutput('nxdx_nydy_plot'))
         # ),
@@ -582,16 +566,16 @@ ui <- fluidPage(# App title
        plotOutput("nxdx_nydy_plot"),
         fluidRow(
           column(3,
-                 sliderInput(inputId="yrange", label="Y Range", max=50, min = 0, value = c(0, 45))
-                 ),
-          column(3,
-                  sliderInput(inputId="xrange", label="X Range", max = 50, min = 0, value = c(0, 45))
-                 ),
-          column(3,
-                 sliderInput(inputId="x_thresh", label="x threshold", min=0, max=50, value=5)
+                 sliderInput(inputId="xrange", label="X range", max = 50, min = 0, value = c(0, 45))
           ),
           column(3,
-                 sliderInput(inputId="y_thresh", label="y threshold", min=0, max=50, value=5)
+                 sliderInput(inputId="yrange", label="Y range", max=50, min = 0, value = c(0, 45))
+                 ),
+          column(3,
+                 sliderInput(inputId="x_thresh", label="X threshold", min=0, max=50, value=5)
+          ),
+          column(3,
+                 sliderInput(inputId="y_thresh", label="Y threshold", min=0, max=50, value=5)
           )),
         fluidRow(
         column(4, selectInput(inputId = "exclude_male_genes", 
@@ -604,17 +588,21 @@ ui <- fluidPage(# App title
         ),
         fluidRow(
           column(3,
-                 "Case A selection:",
+                 "Sample Y selection:",
                  wellPanel(htmlOutput("render_nx"))),
           column(3,
-                 "Control A selection:",
+                 "Background Y selection:",
                  wellPanel(htmlOutput("render_dx"))),
           column(3,
-                 "Case B selection:",
+                 "Sample X selection:",
                  wellPanel(htmlOutput("render_ny"))),
           column(3,
-                 "Control B selection:",
+                 "Background X selection:",
                  wellPanel(htmlOutput("render_dy")))
+        ),
+        fluidRow(
+          column(6, plotOutput('pt1')),
+          column(6, plotOutput('pt2'))
         )
       ),
       tabPanel(
@@ -623,7 +611,7 @@ ui <- fluidPage(# App title
         dataTableOutput("rendered_table")
       ),
       tabPanel(
-        title="Case A",
+        title="Sample Y",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -658,7 +646,7 @@ ui <- fluidPage(# App title
         ),
       ),
       tabPanel(
-        title="Control A",
+        title="Background Y",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -687,13 +675,13 @@ ui <- fluidPage(# App title
                    inputId="dx3",
                    label="Neurons",
                    choices=neuron_vec,
-                   selected=neuron_vec[neuron_vec!=c("Cholinergic_15")]
+                   selected=neuron_vec
                  ),
           ),
         ),  
       ),
       tabPanel(
-        title="Case B",
+        title="Sample X",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -728,7 +716,7 @@ ui <- fluidPage(# App title
         ),
       ),
       tabPanel(
-        title="Control B",
+        title="Background X",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -747,7 +735,7 @@ ui <- fluidPage(# App title
                    inputId="dy2",
                    label="Tissues",
                    choices=tissue_vec,
-                   selected=tissue_vec[tissue_vec!=c("Ciliated_sensory_neurons")]
+                   selected=tissue_vec
                  ),
           ),
           column(4,
