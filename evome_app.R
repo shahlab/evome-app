@@ -137,7 +137,7 @@ server <- function(input, output, session) {
                             guide = "none")+
       theme(plot.title = element_text(hjust = 0.5),
             aspect.ratio = 1) +
-      stat_cor()
+      stat_cor(method = "spearman")
   })
   
   pt2 <-reactive({
@@ -157,7 +157,7 @@ server <- function(input, output, session) {
                             guide = "none")+
       theme(plot.title = element_text(hjust = 0.5),
             aspect.ratio = 1) +
-      stat_cor()
+      stat_cor(method = "spearman")
   })
   
   # output$axes_analysis_plots <- renderPlot({pt1() + pt2()})
