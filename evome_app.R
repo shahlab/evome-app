@@ -1,11 +1,11 @@
 # TODO: Create github repo for this, README, and associated files
 
 # TODO:
+# Rewrite docx help page as html (wait for Alex edits)
+# Use includeHTML to display help page
 # Change x and y range maxes to dynamic
 # Include inf values in the table instead of dropping them
 # Label genes above threshold in pt1 and pt2
-# Rewrite docx help page as html (wait for Alex edits)
-# Use includeHTML to display help page
 # 
 
 library(shiny)
@@ -110,18 +110,26 @@ server <- function(input, output, session) {
   nxdx_nydy_df <- reactive({
       df_evome() %>%
         select(Peptide_count,Gene_name) %>%
-        mutate(Case_x=nx(), Control_x=dx(), Case_y=ny(), Control_y=dy(),
-               Case_over_control_x=Case_x/Control_x, Case_over_control_y=Case_y/Control_y,
+        mutate(Sample_x=nx(), Background_x=dx(), Sample_y=ny(), Background_y=dy(),
+               Sample_over_background_x=Sample_x/Background_x, Sample_over_background_y=Sample_y/Background_y,
                color = case_when(
-                 Case_over_control_x > input$x_thresh & Case_over_control_y < input$y_thresh~ "onlyX",
-                 Case_over_control_y > input$y_thresh & Case_over_control_x < input$x_thresh~ "onlyY",
-                 (Case_over_control_x > input$x_thresh & Case_over_control_y > input$y_thresh) ~ "bothXY",
-                 (Case_over_control_x < input$x_thresh & Case_over_control_y < input$y_thresh) ~ "none")) %>%
-        filter(is.finite(Case_over_control_x) & is.finite(Case_over_control_y))
+                 Sample_over_background_x > input$x_thresh & Sample_over_background_y < input$y_thresh~ "onlyX",
+                 Sample_over_background_y > input$y_thresh & Sample_over_background_x < input$x_thresh~ "onlyY",
+                 (Sample_over_background_x > input$x_thresh & Sample_over_background_y > input$y_thresh) ~ "bothXY",
+                 (Sample_over_background_x < input$x_thresh & Sample_over_background_y < input$y_thresh) ~ "none")) %>%
+        filter(is.finite(Sample_over_background_x) & is.finite(Sample_over_background_y)) %>%
+        rename(
+          Sample_x = Sample_x,
+          Sample_y = Sample_y,
+          Background_x = Background_x,
+          Background_y = Background_y,
+          Sample_over_background_x = Sample_over_background_x,
+          Sample_over_background_y = Sample_over_background_y
+        )
   })
   
   pt1 <- reactive({
-    ggplot(nxdx_nydy_df(), aes(x = Case_x, y = Control_x)) +
+    ggplot(nxdx_nydy_df(), aes(x = Sample_x, y = Background_x)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample Y vs. Background Y") +
       xlab("Avg. peptide abundance Background Y") +
@@ -130,8 +138,8 @@ server <- function(input, output, session) {
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       # coord_equal() +
-      # xlim(range(nxdx_nydy_df() %>% select(Case_x,Control_x) %>% unlist())) +
-      # ylim(range(nxdx_nydy_df() %>% select(Case_x,Control_x) %>% unlist())) +
+      # xlim(range(nxdx_nydy_df() %>% select(Sample_x,Background_x) %>% unlist())) +
+      # ylim(range(nxdx_nydy_df() %>% select(Sample_x,Background_x) %>% unlist())) +
       scale_color_viridis_c(option = "B",
                             name = "Neighboring\npoints",
                             guide = "none")+
@@ -141,14 +149,14 @@ server <- function(input, output, session) {
   })
   
   pt2 <-reactive({
-    ggplot(nxdx_nydy_df(), aes(x = Case_y, y = Control_y)) +
+    ggplot(nxdx_nydy_df(), aes(x = Sample_y, y = Background_y)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample X vs. Background X") +
       xlab("Avg. peptide abundance Background X") +
       ylab("Avg. peptide abundance Sample X") +
       theme_pubr() +
-      # xlim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
-      # ylim(range(nxdx_nydy_df() %>% select(Case_y,Control_y) %>% unlist())) +
+      # xlim(range(nxdx_nydy_df() %>% select(Sample_y,Background_y) %>% unlist())) +
+      # ylim(range(nxdx_nydy_df() %>% select(Sample_y,Background_y) %>% unlist())) +
       # # coord_equal() +
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
@@ -445,44 +453,44 @@ server <- function(input, output, session) {
   )
   
   plot_reactive <- reactive(
-    ggplot(nxdx_nydy_df(), aes(x = Case_over_control_x, y = Case_over_control_y, color = color)) +
+    ggplot(nxdx_nydy_df(), aes(x = Sample_over_background_x, y = Sample_over_background_y, color = color)) +
       geom_point(alpha = 0.5, size = 0.8) +
       # # Covered by both thresholds
       # geom_point(
-      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-      #                                      (Case_over_control_y > input$y_thresh)),
-      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   data = nxdx_nydy_df() %>% filter((Sample_over_background_x > input$x_thresh) &
+      #                                      (Sample_over_background_y > input$y_thresh)),
+      #   aes(x = Sample_over_background_x, y = Sample_over_background_y, size = 1),
       #   color = "#601A4A",
       #   alpha = 0.5
       # ) +
-      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-      #                                                    (Case_over_control_y > input$y_thresh)),
-      #                 aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
+      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Sample_over_background_x > input$x_thresh) &
+      #                                                    (Sample_over_background_y > input$y_thresh)),
+      #                 aes(x = Sample_over_background_x, y = Sample_over_background_y, label = Gene_name),
       #                 size = 5) +
       # # Covered by x threshold
       # geom_point(
-      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-      #                                      (Case_over_control_y < input$y_thresh)),
-      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   data = nxdx_nydy_df() %>% filter((Sample_over_background_x > input$x_thresh) &
+      #                                      (Sample_over_background_y < input$y_thresh)),
+      #   aes(x = Sample_over_background_x, y = Sample_over_background_y, size = 1),
       #   color = "#EE442F",
       #   alpha = 0.5
       # ) +
-      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Case_over_control_x > input$x_thresh) &
-      #                                                    (Case_over_control_y < input$y_thresh)),
-      #                 aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
+      # geom_text_repel(data = nxdx_nydy_df() %>% filter((Sample_over_background_x > input$x_thresh) &
+      #                                                    (Sample_over_background_y < input$y_thresh)),
+      #                 aes(x = Sample_over_background_x, y = Sample_over_background_y, label = Gene_name),
       #                 size = 5) +
       # # Covered by y threshold
       # geom_point(
-      #   data = nxdx_nydy_df() %>% filter((Case_over_control_x < input$x_thresh) &
-      #                                      (Case_over_control_y > input$y_thresh)),
-      #   aes(x = Case_over_control_x, y = Case_over_control_y, size = 1),
+      #   data = nxdx_nydy_df() %>% filter((Sample_over_background_x < input$x_thresh) &
+      #                                      (Sample_over_background_y > input$y_thresh)),
+      #   aes(x = Sample_over_background_x, y = Sample_over_background_y, size = 1),
       #   color = "green",
       #   alpha = 0.5
       # ) +
     scale_color_brewer(palette = "Set1") +
       guides(color = "none") +
       geom_text_repel(data = nxdx_nydy_df() %>% filter(color != "none"),
-                      aes(x = Case_over_control_x, y = Case_over_control_y, label = Gene_name),
+                      aes(x = Sample_over_background_x, y = Sample_over_background_y, label = Gene_name),
                       size = 5) +
       theme_pubr() +
       theme(plot.title = element_text(hjust = 0.5)) +
@@ -548,8 +556,6 @@ server <- function(input, output, session) {
     4a. Check the table tab to see the data table producing plot 3a.\n
     4b. Press 'download table' to save this data table to your machine."
   })
-  
-  # TODO: set default plot to the one from Inna's paper
   
 }
 
