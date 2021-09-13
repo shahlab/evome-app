@@ -5,10 +5,9 @@ account: myevome
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4541970
-bundleId: 4968123
+bundleId: 5028030
 url: https://myevome.shinyapps.io/evome-app/
-when: 1629991395.29346
-lastSyncTime: 1629991395.29348
+when: 1631540252.65998
+lastSyncTime: 1631540252.66
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: evome_app2.R|Plot from EVome paper.R|shiny_final.R|shiny_partial.R

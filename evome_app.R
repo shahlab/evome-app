@@ -107,7 +107,7 @@ server <- function(input, output, session) {
   # TODO: pivot_longer and filter features
   # TODO: note excluded rows from is.finite filter
   
-  nxdx_nydy_df <- reactive({
+  nxdx_nydy_df_table <- reactive({
       df_evome() %>%
         select(Peptide_count,Gene_name) %>%
         mutate(Sample_x=nx(), Background_x=dx(), Sample_y=ny(), Background_y=dy(),
@@ -117,7 +117,6 @@ server <- function(input, output, session) {
                  Sample_over_background_y > input$y_thresh & Sample_over_background_x < input$x_thresh~ "onlyY",
                  (Sample_over_background_x > input$x_thresh & Sample_over_background_y > input$y_thresh) ~ "bothXY",
                  (Sample_over_background_x < input$x_thresh & Sample_over_background_y < input$y_thresh) ~ "none")) %>%
-        filter(is.finite(Sample_over_background_x) & is.finite(Sample_over_background_y)) %>%
         rename(
           Sample_x = Sample_x,
           Sample_y = Sample_y,
@@ -126,6 +125,11 @@ server <- function(input, output, session) {
           Sample_over_background_x = Sample_over_background_x,
           Sample_over_background_y = Sample_over_background_y
         )
+  })
+  
+nxdx_nydy_df <- reactive({ 
+  nxdx_nydy_df_table() %>%
+    filter(is.finite(Sample_over_background_x) & is.finite(Sample_over_background_y))
   })
   
   pt1 <- reactive({
@@ -172,7 +176,7 @@ server <- function(input, output, session) {
   output$pt1 <- renderPlot(pt1()) 
   output$pt2 <- renderPlot(pt2()) 
   
-  output$rendered_table <- renderDataTable(nxdx_nydy_df())
+  output$rendered_table <- renderDataTable(nxdx_nydy_df_table())
   
   output$render_nx <- renderUI(HTML(paste(c("Sample Y", nx_names()), sep = '<br/>')))
   output$render_dx <- renderUI(HTML(paste(c("Background Y", dx_names()), sep = '<br/>')))
@@ -541,21 +545,22 @@ server <- function(input, output, session) {
   #ignoreNULL=FALSE
   )
   
-  output$instructions_text <- renderText({
-    "    1a. In the Sample Y tab, select which data you want.\n
-    1b. In the Background Y tab, select which data you want.\n
-    1c. Check the main plot tab to see a average peptide abundances for Sample Y vs. Background Y.\n
-    2a. In the Sample X tab, select which data you want.\n
-    2b. In the Background X tab, select which data you want.\n
-    2c. Check the main plot tab to see a average peptide abundances for Sample X vs. Background X.\n
-    3a. Check the main plot tab to see enrichment in case/Background Y vs. enrichment in case/Background X.\n
-    3b. If desired, adjust the thresholds for plot 3a with sliders beneath the display.\n
-    3c. If desired, adjust the x and y ranges for plot 3a with sliders beneath the display.\n
-    3d. If desired, exclude male-specific genes with a drop-down menu beneath the display.\n
-    3e. Press 'download plot' to save plot 3a to your machine.\n
-    4a. Check the table tab to see the data table producing plot 3a.\n
-    4b. Press 'download table' to save this data table to your machine."
-  })
+  
+  # output$instructions_text <- renderText({
+  #   "    1a. In the Sample Y tab, select which data you want.\n
+  #   1b. In the Background Y tab, select which data you want.\n
+  #   1c. Check the main plot tab to see a average peptide abundances for Sample Y vs. Background Y.\n
+  #   2a. In the Sample X tab, select which data you want.\n
+  #   2b. In the Background X tab, select which data you want.\n
+  #   2c. Check the main plot tab to see a average peptide abundances for Sample X vs. Background X.\n
+  #   3a. Check the main plot tab to see enrichment in case/Background Y vs. enrichment in case/Background X.\n
+  #   3b. If desired, adjust the thresholds for plot 3a with sliders beneath the display.\n
+  #   3c. If desired, adjust the x and y ranges for plot 3a with sliders beneath the display.\n
+  #   3d. If desired, exclude male-specific genes with a drop-down menu beneath the display.\n
+  #   3e. Press 'download plot' to save plot 3a to your machine.\n
+  #   4a. Check the table tab to see the data table producing plot 3a.\n
+  #   4b. Press 'download table' to save this data table to your machine."
+  # })
   
 }
 
@@ -576,7 +581,7 @@ ui <- fluidPage(# App title
           ),
           column(3,
                  sliderInput(inputId="yrange", label="Y range", max=50, min = 0, value = c(0, 45))
-                 ),
+          ),
           column(3,
                  sliderInput(inputId="x_thresh", label="X threshold", min=0, max=50, value=5)
           ),
@@ -765,7 +770,7 @@ ui <- fluidPage(# App title
       # ),
       tabPanel(
         title="Help",
-        verbatimTextOutput("instructions_text")
+        includeMarkdown("data/help.md")
       )
     )
   )
