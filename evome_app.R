@@ -136,8 +136,8 @@ nxdx_nydy_df <- reactive({
     ggplot(nxdx_nydy_df(), aes(x = Sample_x, y = Background_x)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample Y vs. Background Y") +
-      xlab("Avg. peptide abundance Background Y") +
-      ylab("Avg. peptide abundance Sample Y") +
+      xlab("Avg. peptide abundance Background X") +
+      ylab("Avg. peptide abundance Sample X") +
       theme_pubr() +
       scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
       scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))) +
@@ -156,8 +156,8 @@ nxdx_nydy_df <- reactive({
     ggplot(nxdx_nydy_df(), aes(x = Sample_y, y = Background_y)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample X vs. Background X") +
-      xlab("Avg. peptide abundance Background X") +
-      ylab("Avg. peptide abundance Sample X") +
+      xlab("Avg. peptide abundance Background Y") +
+      ylab("Avg. peptide abundance Sample Y") +
       theme_pubr() +
       # xlim(range(nxdx_nydy_df() %>% select(Sample_y,Background_y) %>% unlist())) +
       # ylim(range(nxdx_nydy_df() %>% select(Sample_y,Background_y) %>% unlist())) +
@@ -186,6 +186,45 @@ nxdx_nydy_df <- reactive({
   observe({
     print(dy_names())
     print(nxdx_nydy_df())
+  })
+  
+  # Dynamic plot ranges
+  observeEvent(nxdx_nydy_df(), {
+    x_max <- max(nxdx_nydy_df()$Sample_over_background_x)
+    x_min <- min(nxdx_nydy_df()$Sample_over_background_x)
+    y_max <- max(nxdx_nydy_df()$Sample_over_background_y)
+    y_min <- min(nxdx_nydy_df()$Sample_over_background_y)
+    
+    x_range <- c(x_min, x_max)
+    y_range <- c(x_min, x_max)
+    
+    updateSliderInput(
+      session,
+      "xrange",
+      max = x_max,
+      min = x_min,
+      value = x_range
+    )
+    updateSliderInput(
+      session,
+      "yrange",
+      max = y_max,
+      min = y_min,
+      value = y_range
+    )
+    updateSliderInput(
+      session,
+      "x_thresh",
+      max = x_max,
+      min = x_min
+    )
+    updateSliderInput(
+      session,
+      "y_thresh",
+      max = y_max,
+      min = y_min
+    )
+    
   })
   
   # Select/deslect all buttons 
@@ -452,7 +491,7 @@ nxdx_nydy_df <- reactive({
   output$downloadData <- downloadHandler(
     filename = "evome_data.csv",
     content = function(file) {
-      write.csv(nxdx_nydy_df(), file)
+      write.csv(nxdx_nydy_df_table(), file)
     }
   )
   
@@ -503,8 +542,8 @@ nxdx_nydy_df <- reactive({
       # scale_x_log10() +
       # scale_y_log10() +
       # ggtitle("Enrichment in case/Background Y vs. enrichment in case/Background X") +
-      ylab(paste("Enrichment in case/Background X")) +
-      xlab(paste("Enrichment in case/Background Y")) +
+      ylab(paste("Enrichment in case/background X")) +
+      xlab(paste("Enrichment in case/background Y")) +
       coord_fixed() +
       theme(aspect.ratio = 1)
       # theme(
@@ -541,7 +580,8 @@ nxdx_nydy_df <- reactive({
   # Plot code modified from Inna
   output$nxdx_nydy_plot <- renderPlot({
     plot_reactive()
-  },
+    
+  }
   #ignoreNULL=FALSE
   )
   
@@ -622,7 +662,7 @@ ui <- fluidPage(# App title
         dataTableOutput("rendered_table")
       ),
       tabPanel(
-        title="Sample Y",
+        title="Sample X",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -657,7 +697,7 @@ ui <- fluidPage(# App title
         ),
       ),
       tabPanel(
-        title="Background Y",
+        title="Background X",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -692,7 +732,7 @@ ui <- fluidPage(# App title
         ),  
       ),
       tabPanel(
-        title="Sample X",
+        title="Sample Y",
         fluidRow(
           column(4,
                  headerPanel(""),
@@ -727,7 +767,7 @@ ui <- fluidPage(# App title
         ),
       ),
       tabPanel(
-        title="Background X",
+        title="Background Y",
         fluidRow(
           column(4,
                  headerPanel(""),
