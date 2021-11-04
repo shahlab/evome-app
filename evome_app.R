@@ -1,11 +1,10 @@
 # TODO: Create github repo for this, README, and associated files
 
 # TODO:
-# Rewrite docx help page as html (wait for Alex edits)
-# Use includeHTML to display help page
-# Change x and y range maxes to dynamic
-# Include inf values in the table instead of dropping them
-# Label genes above threshold in pt1 and pt2
+# Comment out lower plot code
+# Remove Sample Y from Sample Y selection, same for other selections.
+# No selection crashes app (!!!)
+# Labelling is backwards (X and Y)
 # 
 
 library(shiny)
@@ -133,6 +132,7 @@ nxdx_nydy_df <- reactive({
   })
   
   pt1 <- reactive({
+    if(nrow(nxdx_nydy_df()) == 0) return()
     ggplot(nxdx_nydy_df(), aes(x = Sample_x, y = Background_x)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample Y vs. Background Y") +
@@ -150,9 +150,13 @@ nxdx_nydy_df <- reactive({
       theme(plot.title = element_text(hjust = 0.5),
             aspect.ratio = 1) +
       stat_cor(method = "spearman")
+      # geom_text_repel(data = nxdx_nydy_df(),
+      #                 aes(x = Sample_x, y = Background_x, label = Gene_name),
+      #                 size = 5)
   })
   
   pt2 <-reactive({
+    if(nrow(nxdx_nydy_df()) == 0) return()
     ggplot(nxdx_nydy_df(), aes(x = Sample_y, y = Background_y)) +
       geom_pointdensity(size = 1) +
       # ggtitle("Sample X vs. Background X") +
@@ -170,6 +174,9 @@ nxdx_nydy_df <- reactive({
       theme(plot.title = element_text(hjust = 0.5),
             aspect.ratio = 1) +
       stat_cor(method = "spearman")
+      # geom_text_repel(data = nxdx_nydy_df(),
+      #                 aes(x = Sample_y, y = Background_y, label = Gene_name),
+      #                 size = 5)
   })
   
   # output$axes_analysis_plots <- renderPlot({pt1() + pt2()})
@@ -178,10 +185,10 @@ nxdx_nydy_df <- reactive({
   
   output$rendered_table <- renderDataTable(nxdx_nydy_df_table())
   
-  output$render_nx <- renderUI(HTML(paste(c("Sample Y", nx_names()), sep = '<br/>')))
-  output$render_dx <- renderUI(HTML(paste(c("Background Y", dx_names()), sep = '<br/>')))
-  output$render_ny <- renderUI(HTML(paste(c("Sample X", ny_names()), sep = '<br/>')))
-  output$render_dy <- renderUI(HTML(paste(c("Background X", dy_names()), sep = '<br/>')))
+  output$render_nx <- renderUI(HTML(paste(nx_names(), sep = '<br/>')))
+  output$render_dx <- renderUI(HTML(paste(dx_names(), sep = '<br/>')))
+  output$render_ny <- renderUI(HTML(paste(ny_names(), sep = '<br/>')))
+  output$render_dy <- renderUI(HTML(paste(dy_names(), sep = '<br/>')))
   
   observe({
     print(dy_names())
@@ -495,7 +502,8 @@ nxdx_nydy_df <- reactive({
     }
   )
   
-  plot_reactive <- reactive(
+  plot_reactive <- reactive({
+    if(nrow(nxdx_nydy_df()) == 0) return()
     ggplot(nxdx_nydy_df(), aes(x = Sample_over_background_x, y = Sample_over_background_y, color = color)) +
       geom_point(alpha = 0.5, size = 0.8) +
       # # Covered by both thresholds
@@ -534,7 +542,7 @@ nxdx_nydy_df <- reactive({
       guides(color = "none") +
       geom_text_repel(data = nxdx_nydy_df() %>% filter(color != "none"),
                       aes(x = Sample_over_background_x, y = Sample_over_background_y, label = Gene_name),
-                      size = 5) +
+                      size = 3, max.overlaps = 10) +
       theme_pubr() +
       theme(plot.title = element_text(hjust = 0.5)) +
       ylim(input$yrange) +
@@ -542,8 +550,8 @@ nxdx_nydy_df <- reactive({
       # scale_x_log10() +
       # scale_y_log10() +
       # ggtitle("Enrichment in case/Background Y vs. enrichment in case/Background X") +
-      ylab(paste("Enrichment in case/background X")) +
-      xlab(paste("Enrichment in case/background Y")) +
+      ylab(paste("Enrichment in Sample Y / Background Y")) +
+      xlab(paste("Enrichment in Sample X / Background X")) +
       coord_fixed() +
       theme(aspect.ratio = 1)
       # theme(
@@ -574,12 +582,12 @@ nxdx_nydy_df <- reactive({
         # axis.text.y = element_text(size = 10, color = "black"),
         # axis.text.x = element_text(size = 10,
         #                            color = "black")
-      )
+      })
   # )
   
   # Plot code modified from Inna
   output$nxdx_nydy_plot <- renderPlot({
-    plot_reactive()
+      plot_reactive()
     
   }
   #ignoreNULL=FALSE
@@ -617,43 +625,46 @@ ui <- fluidPage(# App title
        plotOutput("nxdx_nydy_plot"),
         fluidRow(
           column(3,
-                 sliderInput(inputId="xrange", label="X range", max = 50, min = 0, value = c(0, 45))
+                 sliderInput(inputId="xrange", label="X axis limit", max = 50, min = 0, value = c(0, 45))
           ),
           column(3,
-                 sliderInput(inputId="yrange", label="Y range", max=50, min = 0, value = c(0, 45))
+                 sliderInput(inputId="x_thresh", label="X axis threshold", min=0, max=50, value=5)
           ),
           column(3,
-                 sliderInput(inputId="x_thresh", label="X threshold", min=0, max=50, value=5)
+                 sliderInput(inputId="yrange", label="Y axis limit", max=50, min = 0, value = c(0, 45))
           ),
           column(3,
-                 sliderInput(inputId="y_thresh", label="Y threshold", min=0, max=50, value=5)
+                 sliderInput(inputId="y_thresh", label="Y axis threshold", min=0, max=50, value=5)
           )),
+wellPanel(
         fluidRow(
-        column(4, selectInput(inputId = "exclude_male_genes", 
+          
+        column(6, selectInput(inputId = "exclude_male_genes", 
                     label = "Exclude male-specific genes?",
                     choices = c("no", "yes"),
                     selected = "no")),
-        column(4,
+        column(6,
                headerPanel(""),
                downloadButton('downloadPlot', 'Download Plot'))
-        ),
+          
+        )),
         fluidRow(
           column(3,
-                 "Sample Y selection:",
+                 "Sample X selection:",
                  wellPanel(htmlOutput("render_nx"))),
           column(3,
-                 "Background Y selection:",
+                 "Background X selection:",
                  wellPanel(htmlOutput("render_dx"))),
           column(3,
-                 "Sample X selection:",
+                 "Sample Y selection:",
                  wellPanel(htmlOutput("render_ny"))),
           column(3,
-                 "Background X selection:",
+                 "Background Y selection:",
                  wellPanel(htmlOutput("render_dy")))
         ),
         fluidRow(
-          column(6, plotOutput('pt1')),
-          column(6, plotOutput('pt2'))
+          # column(6, plotOutput('pt1')),
+          # column(6, plotOutput('pt2'))
         )
       ),
       tabPanel(
